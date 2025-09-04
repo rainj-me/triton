@@ -158,7 +158,9 @@ def make_default_opt_flags_nvidia(
         block_m = 128
     else:
         min_block_m = 64 if torch.cuda.get_device_capability()[0] == 10 else 16
-        block_m = max(min_block_m, min(triton.next_power_of_2(tokens_per_expt), 128))
+        # on sm120 device the sram is small, try to set the max value of block_m to 64
+        max_block_m = 64 if torch.cuda.get_device_capability()[0] == 12 else 128
+        block_m = max(min_block_m, min(triton.next_power_of_2(tokens_per_expt), max_block_m))
     # block n
     arch = None
     block_n = opt_flags_nvidia.compute_block_n(n, arch, precision_config)
