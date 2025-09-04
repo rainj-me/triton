@@ -20,6 +20,10 @@ def cuda_capability_geq(major, minor):
     return target_info.cuda_capability_geq(major, minor)
 
 @tl.constexpr_function
+def cuda_capability_eq(major, minor):
+    return target_info.cuda_capability_eq(major, minor)
+
+@tl.constexpr_function
 def get_dtype(tensor_or_desc: tl.tensor | tl.tensor_descriptor) -> tl.dtype:
     if isinstance(tensor_or_desc, tl.tensor):
         return tensor_or_desc.dtype.element_ty
@@ -217,9 +221,13 @@ def _p_matmul_ogs(
 
     USE_FLEXPOINT_SCALE: tl.constexpr = YActualScale is not None or YChecksumScale is not None
 
-    USE_GATHER_TMA: tl.constexpr = GatherIndx is not None and cuda_capability_geq(10, 0)
+    USE_GATHER_TMA: tl.constexpr = GatherIndx is not None \
+        and cuda_capability_geq(10, 0) \
+        and not cuda_capability_eq(12, 0)
     X_USE_LOAD_TMA: tl.constexpr = GatherIndx is None and isinstance(X, tl.tensor_descriptor)
-    USE_SCATTER_TMA: tl.constexpr = (cuda_capability_geq(10, 0) and HAS_FUSED_SCATTER) and not DISABLE_Y_TMA
+    USE_SCATTER_TMA: tl.constexpr = (cuda_capability_geq(10, 0) \
+        and not cuda_capability_eq(12, 0) \
+        and HAS_FUSED_SCATTER) and not DISABLE_Y_TMA
     INT_MAX: tl.constexpr = 2147483647
 
     if USE_SCATTER_TMA:
